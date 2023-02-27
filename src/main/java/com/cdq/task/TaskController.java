@@ -26,11 +26,8 @@ class TaskController {
     @PostMapping
     public Mono<ResponseEntity<Task>> createTask(@RequestParam String pattern, @RequestParam String input) {
         return taskService.createTask(pattern, input)
-                .flatMap(task -> {
-                    Mono.fromRunnable(() -> taskService.processTask(task).subscribe())
-                            .subscribeOn(Schedulers.boundedElastic()).subscribe();
-                    return Mono.just(ResponseEntity.created(URI.create("/api/tasks/" + task.getId())).body(task));
-                });
+                .doOnSuccess(taskService::processTask)
+                .map(it -> ResponseEntity.created(URI.create("/api/tasks/" + it.getId())).body(it));
     }
 
     @GetMapping
